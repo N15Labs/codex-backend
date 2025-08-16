@@ -38,7 +38,10 @@ namespace CodexBackend
             }
             else
             {
-                var dbPath = Path.Combine(AppContext.BaseDirectory, "codex.db");
+                var sqlitePath = Environment.GetEnvironmentVariable("SQLITE_PATH");
+                var dbPath = !string.IsNullOrWhiteSpace(sqlitePath)
+                    ? sqlitePath
+                    : Path.Combine(AppContext.BaseDirectory, "codex.db");
                 builder.Services.AddDbContext<AppDbContext>(opt => opt.UseSqlite($"Data Source={dbPath}"));
             }
 
