@@ -1,0 +1,11 @@
+[build]
+builder = "dockerfile"
+dockerfilePath = "Dockerfile"
+buildCommand = "docker build -t codex-backend ."
+
+[deploy]
+startCommand = "dotnet CodexBackend.dll"
+restartPolicyType = "on_failure"
+
+[environments.production]
+variables = { }
