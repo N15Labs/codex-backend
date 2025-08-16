@@ -13,27 +13,24 @@ namespace CodexBackend
         {
             var builder = WebApplication.CreateBuilder(args);
 
-            // Load .env into Environment variables (Dev only; no-op if file missing)
             Env.Load();
-
-            // ---------- CORS ----------
-            var allowedOrigins = builder.Configuration
-                .GetValue<string>("AllowedOrigins")?
-                .Split(';', StringSplitOptions.RemoveEmptyEntries)
-                ?? Array.Empty<string>();
 
             builder.Services.AddCors(opt =>
             {
                 opt.AddPolicy("AllowFrontend", policy =>
-                {
-                    policy
-                        .WithOrigins(allowedOrigins.Length > 0 ? allowedOrigins : new[] { "http://localhost:3000" })
-                        .AllowAnyHeader()
-                        .AllowAnyMethod();
-                });
+                    policy.SetIsOriginAllowed(origin =>
+                    {
+                        if (string.IsNullOrWhiteSpace(origin)) return false;
+                        var host = new Uri(origin).Host;
+                        return host.Equals("<your-frontend>.vercel.app", StringComparison.OrdinalIgnoreCase)
+                               || host.EndsWith(".vercel.app", StringComparison.OrdinalIgnoreCase)
+                               || host.Equals("localhost", StringComparison.OrdinalIgnoreCase);
+                    })
+                    .AllowAnyHeader()
+                    .AllowAnyMethod()
+                );
             });
 
-            // ---------- Database (PG in prod if DATABASE_URL set; else SQLite local) ----------
             var connStr = Environment.GetEnvironmentVariable("DATABASE_URL");
             if (!string.IsNullOrWhiteSpace(connStr))
             {
@@ -45,8 +42,6 @@ namespace CodexBackend
                 builder.Services.AddDbContext<AppDbContext>(opt => opt.UseSqlite($"Data Source={dbPath}"));
             }
 
-            // ---------- JWT ----------
-            // Support either configuration "Jwt:Key" or environment "Jwt__Key"
             var jwtKey = builder.Configuration["Jwt:Key"]
                          ?? Environment.GetEnvironmentVariable("Jwt__Key");
 
@@ -72,12 +67,9 @@ namespace CodexBackend
             builder.Services.AddEndpointsApiExplorer();
             builder.Services.AddSwaggerGen();
 
-            // ---------- Kestrel binding (single source of truth) ----------
-            // Choose port: PORT env (Render/Railway) -> default 5035
             var portEnv = Environment.GetEnvironmentVariable("PORT");
             if (!int.TryParse(portEnv, out var port)) port = 5035;
 
-            // Bind exactly one HTTP endpoint; do NOT also call UseUrls() elsewhere.
             builder.WebHost.ConfigureKestrel(o =>
             {
                 o.ListenAnyIP(port);
@@ -85,7 +77,6 @@ namespace CodexBackend
 
             var app = builder.Build();
 
-            // ---------- Middleware ----------
             app.UseSwagger();
             app.UseSwaggerUI();
 
@@ -93,14 +84,12 @@ namespace CodexBackend
             app.UseAuthentication();
             app.UseAuthorization();
 
-            // ---------- DB migrations ----------
             using (var scope = app.Services.CreateScope())
             {
                 var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
                 db.Database.Migrate();
             }
 
-            // Map controllers & run
             app.MapControllers();
             app.Run();
         }
