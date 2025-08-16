@@ -1,14 +1,28 @@
+# Build artifacts
 **/bin/
 **/obj/
+
+# IDE/project settings
 **/.vs/
 **/.vscode/
-.git
-.gitignore
-Dockerfile
-docker-compose.yml
+.idea/
 *.user
+*.suo
+
+# Temporary / system files
 *.swp
 *.swo
 *.tmp
 *.log
+*.DS_Store
+
+# Git internals
+.git
+.gitignore
+
+# Docker
+Dockerfile
+docker-compose.yml
+
+# Local database
 codex.db
