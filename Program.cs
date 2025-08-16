@@ -22,8 +22,11 @@ namespace CodexBackend
                     {
                         if (string.IsNullOrWhiteSpace(origin)) return false;
                         var host = new Uri(origin).Host;
-                        return host.Equals("<your-frontend>.vercel.app", StringComparison.OrdinalIgnoreCase)
+                        return host.Equals("codex-50f3xxj1b-s022511hs-projects.vercel.app", StringComparison.OrdinalIgnoreCase)
+                               || host.Equals("codex-six-teal.vercel.app", StringComparison.OrdinalIgnoreCase)
                                || host.EndsWith(".vercel.app", StringComparison.OrdinalIgnoreCase)
+                               || host.Equals("n15labs.co.uk", StringComparison.OrdinalIgnoreCase)
+                               || host.EndsWith(".n15labs.co.uk", StringComparison.OrdinalIgnoreCase)
                                || host.Equals("localhost", StringComparison.OrdinalIgnoreCase);
                     })
                     .AllowAnyHeader()
