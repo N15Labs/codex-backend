@@ -1,0 +1,14 @@
+**/bin/
+**/obj/
+**/.vs/
+**/.vscode/
+.git
+.gitignore
+Dockerfile
+docker-compose.yml
+*.user
+*.swp
+*.swo
+*.tmp
+*.log
+codex.db
