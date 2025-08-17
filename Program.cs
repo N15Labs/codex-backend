@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using DotNetEnv;
+using System.Linq;
 
 namespace CodexBackend
 {
@@ -15,12 +16,18 @@ namespace CodexBackend
 
             Env.Load();
 
+            var allowedOriginsConfig = builder.Configuration["AllowedOrigins"]
+                                     ?? Environment.GetEnvironmentVariable("AllowedOrigins");
+            var allowedOrigins = (allowedOriginsConfig ?? "")
+                .Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+
             builder.Services.AddCors(opt =>
             {
                 opt.AddPolicy("AllowFrontend", policy =>
                     policy.SetIsOriginAllowed(origin =>
                     {
                         if (string.IsNullOrWhiteSpace(origin)) return false;
+                        if (allowedOrigins.Any(o => string.Equals(o, origin, StringComparison.OrdinalIgnoreCase))) return true;
                         var host = new Uri(origin).Host;
                         return host.Equals("codex-50f3xxj1b-s022511hs-projects.vercel.app", StringComparison.OrdinalIgnoreCase)
                                || host.Equals("codex-six-teal.vercel.app", StringComparison.OrdinalIgnoreCase)
@@ -54,16 +61,23 @@ namespace CodexBackend
             if (string.IsNullOrWhiteSpace(jwtKey))
                 throw new InvalidOperationException("Jwt:Key (or env Jwt__Key) is not configured.");
 
+            var jwtIssuer = builder.Configuration["Jwt:Issuer"]
+                            ?? Environment.GetEnvironmentVariable("Jwt__Issuer");
+            var jwtAudience = builder.Configuration["Jwt:Audience"]
+                              ?? Environment.GetEnvironmentVariable("Jwt__Audience");
+
             builder.Services
                 .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
                 .AddJwtBearer(options =>
                 {
                     options.TokenValidationParameters = new TokenValidationParameters
                     {
-                        ValidateIssuer = false,
-                        ValidateAudience = false,
+                        ValidateIssuer = !string.IsNullOrWhiteSpace(jwtIssuer),
+                        ValidateAudience = !string.IsNullOrWhiteSpace(jwtAudience),
                         ValidateLifetime = true,
                         ValidateIssuerSigningKey = true,
+                        ValidIssuer = jwtIssuer,
+                        ValidAudience = jwtAudience,
                         IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey))
                     };
                 });
